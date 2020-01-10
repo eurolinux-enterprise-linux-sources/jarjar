@@ -30,7 +30,7 @@
 
 Name:           jarjar
 Version:        1.4
-Release:        3%{?dist}
+Release:        6%{?dist}
 Summary:        Jar Jar Links
 License:        ASL 2.0
 URL:            http://code.google.com/p/jarjar/
@@ -38,10 +38,10 @@ Group:          Development/Tools
 Source0:        http://jarjar.googlecode.com/files/jarjar-src-1.4.zip
 Source1:        jarjar.pom
 Source2:        jarjar-util.pom
+Patch0:         bz1027817.patch
 BuildRequires:  ant
 BuildRequires:  ant-junit
 BuildRequires:  jpackage-utils
-BuildRequires:  junit
 BuildRequires:  objectweb-asm4
 BuildRequires:  maven-local
 Requires:       objectweb-asm4
@@ -82,6 +82,8 @@ Requires:       jpackage-utils
 
 %prep
 %setup -q -n %{name}-%{version}
+%patch0 -p0 -b.orig
+
 # remove all binary libs
 rm -f lib/*.jar
 
@@ -104,17 +106,7 @@ install -m 644 dist/%{name}-%{version}.jar \
 install -m 644 dist/%{name}-util-%{version}.jar \
   $RPM_BUILD_ROOT%{_javadir}/%{name}-util.jar
 install -m 644 dist/%{name}-plugin-%{version}.jar \
-  $RPM_BUILD_ROOT%{_javadir}/%{name}-maven-plugin.jar
-
-%add_to_maven_depmap jarjar           %{name} %{version} JPP %{name}
-%add_to_maven_depmap tonic            %{name} %{version} JPP %{name}
-%add_to_maven_depmap com.tonicsystems %{name} %{version} JPP %{name}
-%add_to_maven_depmap jarjar           %{name}-util %{version} JPP %{name}-util
-%add_to_maven_depmap tonic            %{name}-util %{version} JPP %{name}-util
-%add_to_maven_depmap com.tonicsystems %{name}-util %{version} JPP %{name}-util
-%add_to_maven_depmap jarjar           %{name}-plugin %{version} JPP %{name}-plugin
-%add_to_maven_depmap tonic            %{name}-plugin %{version} JPP %{name}-plugin
-%add_to_maven_depmap com.tonicsystems %{name}-plugin %{version} JPP %{name}-plugin
+  $RPM_BUILD_ROOT%{_javadir}/%{name}-plugin.jar
 
 sed -i -e s/@VERSION@/%{version}/g maven/pom.xml
 
@@ -125,6 +117,12 @@ install -pD -T -m 644 %{SOURCE2} \
     $RPM_BUILD_ROOT%{_mavenpomdir}/JPP-%{name}-util.pom
 install -pD -T -m 644 maven/pom.xml \
     $RPM_BUILD_ROOT%{_mavenpomdir}/JPP-%{name}-plugin.pom
+
+# depmaps
+%add_maven_depmap JPP-%{name}.pom %{name}.jar -a "jarjar:%{name},com.tonicsystems:%{name},com.googlecode.jarjar:jarjar"
+%add_maven_depmap JPP-%{name}-util.pom %{name}-util.jar -a "jarjar:%{name}-util,com.tonicsystems:%{name}-util"
+%add_maven_depmap JPP-%{name}-plugin.pom %{name}-plugin.jar -a "jarjar:%{name}-plugin,tonic:%{name}-plugin,com.tonicsystems:%{name}-plugin" -f "plugin"
+
 
 # javadoc
 mkdir -p $RPM_BUILD_ROOT%{_javadocdir}/%{name}
@@ -137,18 +135,31 @@ cp -pr dist/javadoc/* $RPM_BUILD_ROOT%{_javadocdir}/%{name}
 %{_javadir}/%{name}-util.jar
 %{_mavenpomdir}/JPP-%{name}.pom
 %{_mavenpomdir}/JPP-%{name}-util.pom
-%{_mavendepmapfragdir}/*
+%{_mavendepmapfragdir}/%{name}
 
 %files maven-plugin
 %doc COPYING
+%{_mavendepmapfragdir}/%{name}-plugin
 %{_mavenpomdir}/JPP-%{name}-plugin.pom
-%{_javadir}/%{name}-maven-plugin.jar
+%{_javadir}/%{name}-plugin.jar
 
 %files javadoc
 %doc COPYING
 %{_javadocdir}/%{name}
 
 %changelog
+* Tue Jan 07 2014 Lukas Berk <lberk@redhat.com> - 1.4-6
+- Fix maven plugin
+- Related: rhbz#1027817
+
+* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 1.4-5
+- Mass rebuild 2013-12-27
+
+* Thu Nov 07 2013 Stanislav Ochotnicky <sochotnicky@redhat.com> - 1.4-4
+- Use add_maven_depmap instead of deprecated
+- Fix plugin mapping
+- Resolves: rhbz#1027718
+
 * Mon Jul 29 2013 Lukas Berk <lberk@redhat.com> - 1.4-3
 - Set up symbolic links correctly.
 
